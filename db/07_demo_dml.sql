@@ -33,3 +33,10 @@ SELECT period_month, expenses, score FROM health_scores WHERE user_id = 2 ORDER 
 -- DELETE: trigger fires
 DELETE FROM transactions WHERE user_id = 2 AND amount = 5000 AND txn_date = '2026-09-20';
 SELECT period_month, expenses, score FROM health_scores WHERE user_id = 2 ORDER BY period_month;
+-- ===== View demo =====
+
+-- Score trend with month-over-month change
+SELECT * FROM v_score_trend WHERE user_id = 2 ORDER BY period_month;
+
+-- Spending per category per month
+SELECT * FROM v_monthly_category_spend WHERE user_id = 2 ORDER BY month, category;
