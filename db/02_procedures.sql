@@ -58,3 +58,44 @@ BEGIN
     computed_at    = now();
 END
 $$;
+CREATE OR REPLACE PROCEDURE pay_debt(
+  p_user   INT,
+  p_debt   INT,
+  p_amount NUMERIC,
+  p_date   DATE DEFAULT CURRENT_DATE
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_balance NUMERIC;
+  v_cat     INT;
+BEGIN
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Payment amount must be positive';
+  END IF;
+
+  -- lock this debt row so two payments can't change it at the same moment
+  SELECT remaining_balance INTO v_balance
+    FROM debts
+   WHERE debt_id = p_debt AND user_id = p_user
+     FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Debt % not found for user %', p_debt, p_user;
+  END IF;
+
+  IF p_amount > v_balance THEN
+    RAISE EXCEPTION 'Payment % is more than the remaining balance %', p_amount, v_balance;
+  END IF;
+
+  SELECT category_id INTO v_cat FROM categories WHERE name = 'Loan EMI';
+
+  -- step 1: record the payment (the trigger recalculates the score)
+  INSERT INTO transactions (user_id, category_id, amount, txn_type, txn_date)
+  VALUES (p_user, v_cat, p_amount, 'debt_payment', p_date);
+
+  -- step 2: reduce the balance
+  UPDATE debts
+     SET remaining_balance = remaining_balance - p_amount
+   WHERE debt_id = p_debt;
+END
+$$;
