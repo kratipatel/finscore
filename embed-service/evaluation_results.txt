@@ -1,0 +1,21 @@
+topic          query                               sem P@5   kw P@5
+--------------------------------------------------------------------
+dining_out     eating at a restaurant                  0.8      0.0
+dining_out     food delivery order                     0.2      0.4
+coffee_snacks  coffee with friends                     0.8      0.8
+coffee_snacks  tea and light snacks                    0.2      0.2
+groceries      buying vegetables and fruits            0.8      0.4
+groceries      household supplies shopping             0.8      0.2
+commute        daily travel to college or work         0.4      0.2
+commute        getting around the city                 0.4      0.0
+travel         trip home for the holidays              0.2      0.2
+travel         long distance journey tickets           0.6      0.0
+streaming      watching movies and shows               0.6      0.0
+streaming      subscriptions and entertainment         1.0      0.0
+utilities      monthly household bills                 0.6      0.0
+utilities      internet and phone recharge             0.6      0.4
+--------------------------------------------------------------------
+MEAN precision@5                                     0.571    0.200
+MEAN reciprocal rank (MRR)                           0.845    0.464
+
+14 queries, 35 notes, 5 relevant notes per query
