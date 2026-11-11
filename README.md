@@ -150,7 +150,7 @@ Configure the root `.env` file:
 
 ```env
 PG_PASSWORD=YOUR_DATABASE_PASSWORD
-DATABASE_URL=postgres://finscore:YOUR_DATABASE_PASSWORD@localhost:5432/finscore
+DATABASE_URL=postgres://finscore:YOUR_DATABASE_PASSWORD@localhost:5433/finscore
 ```
 
 Replace `YOUR_DATABASE_PASSWORD` with your own database password in both places.
@@ -168,7 +168,7 @@ docker compose up -d
 PostgreSQL runs on:
 
 ```text
-localhost:5432
+localhost:5433
 ```
 
 ### 4. Initialize the Database
@@ -202,7 +202,7 @@ npm.cmd install
 Create `web/.env.local` with:
 
 ```env
-DATABASE_URL=postgres://finscore:YOUR_DATABASE_PASSWORD@localhost:5432/finscore
+DATABASE_URL=postgres://finscore:YOUR_DATABASE_PASSWORD@localhost:5433/finscore
 EMBED_URL=http://localhost:8001
 SESSION_SECRET=YOUR_RANDOM_SECRET
 ```
