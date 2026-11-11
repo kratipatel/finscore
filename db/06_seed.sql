@@ -9,11 +9,10 @@ INSERT INTO categories (name, kind) VALUES
   ('Utilities', 'expense'),
   ('Loan EMI', 'debt_payment');
 
--- Users (these hashes are fake placeholders; Person 2's signup will make real ones)
+-- Users (demo accounts; password for all of them is Demo@1234, stored as a bcrypt hash)
 INSERT INTO users (email, password_hash, role) VALUES
-  ('admin@finscore.com', 'fake_hash_admin', 'admin'),
-  ('demo@finscore.com',  'fake_hash_demo',  'user');
-
+  ('admin@finscore.com', '$2b$10$KsoqOGvFX.04FZXd00KlE.s4uEVlefIfZLl2EYr1uok5yPJ4yzrD6', 'admin'),
+  ('demo@finscore.com',  '$2b$10$KsoqOGvFX.04FZXd00KlE.s4uEVlefIfZLl2EYr1uok5yPJ4yzrD6', 'user');
 -- A debt for the demo user
 INSERT INTO debts (user_id, name, remaining_balance)
 SELECT user_id, 'Education Loan', 200000
