@@ -1,18 +1,48 @@
 import { pool } from "@/lib/db";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 
-// TEMPORARY: acts as user 2 (the demo user) unless DEV_USER_ID is set in
-// web/.env.local. Person 2 will replace this with the logged-in user
-// from the session.
-export function getCurrentUserId() {
-  const v = Number(process.env.DEV_USER_ID);
-  return Number.isInteger(v) && v > 0 ? v : 2;
+const COOKIE_NAME = "finscore_session";
+
+export async function getCurrentUserId() {
+  try {
+    const secret = process.env.SESSION_SECRET;
+
+    if (!secret) {
+      throw new Error("SESSION_SECRET is not configured");
+    }
+
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+
+    if (!token) {
+      return null;
+    }
+
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret)
+    );
+
+    const userId = Number(payload.sub);
+
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return null;
+    }
+
+    return userId;
+  } catch {
+    return null;
+  }
 }
 
-// Looks up the role in the database, so it can't be faked by the client
 export async function isAdmin(userId) {
+  if (!userId) return false;
+
   const { rows } = await pool.query(
     "SELECT role FROM users WHERE user_id = $1",
     [userId]
   );
+
   return rows.length > 0 && rows[0].role === "admin";
 }

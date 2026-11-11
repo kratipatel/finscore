@@ -1,17 +1,30 @@
+
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getCurrentUserId, isAdmin } from "@/lib/currentUser";
 
 export async function GET() {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
 
+  // Check whether the user is logged in.
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  // Check whether the logged-in user is an admin.
   if (!(await isAdmin(userId))) {
-    return NextResponse.json({ error: "Admins only" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Admins only" },
+      { status: 403 }
+    );
   }
 
   const totals = await pool.query(
-    `SELECT (SELECT count(*) FROM users)                       AS total_users,
-            (SELECT count(*) FROM transactions)                AS total_transactions,
+    `SELECT (SELECT count(*) FROM users) AS total_users,
+            (SELECT count(*) FROM transactions) AS total_transactions,
             (SELECT COALESCE(sum(remaining_balance), 0) FROM debts) AS total_debt_outstanding`
   );
 
@@ -31,6 +44,7 @@ export async function GET() {
   );
 
   const t = totals.rows[0];
+
   return NextResponse.json({
     total_users: Number(t.total_users),
     total_transactions: Number(t.total_transactions),

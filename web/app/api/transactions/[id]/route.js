@@ -4,7 +4,10 @@ import { getCurrentUserId } from "@/lib/currentUser";
 import { validateTxn, shapeTxn, dbErrorResponse } from "@/lib/txn";
 
 export async function PUT(request, { params }) {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   if (!/^\d+$/.test(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -40,7 +43,10 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   if (!/^\d+$/.test(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });

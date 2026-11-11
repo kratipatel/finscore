@@ -1,9 +1,17 @@
+
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getCurrentUserId } from "@/lib/currentUser";
 
 export async function GET() {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
   const { rows } = await pool.query(
     `SELECT to_char(period_month, 'YYYY-MM-DD') AS period_month,
@@ -18,7 +26,10 @@ export async function GET() {
     rows.map((r) => ({
       period_month: r.period_month,
       score: Number(r.score),
-      change_vs_prev: r.change_vs_prev === null ? null : Number(r.change_vs_prev),
+      change_vs_prev:
+        r.change_vs_prev === null
+          ? null
+          : Number(r.change_vs_prev),
     }))
   );
 }
