@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getCurrentUserId } from "@/lib/currentUser";
@@ -6,7 +7,15 @@ import { validateTxn, shapeTxn, dbErrorResponse } from "@/lib/txn";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function GET(request) {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
@@ -20,10 +29,12 @@ export async function GET(request) {
 
   const conds = ["t.user_id = $1"];
   const params = [userId];
+
   if (from) {
     params.push(from);
     conds.push(`t.txn_date >= $${params.length}`);
   }
+
   if (to) {
     params.push(to);
     conds.push(`t.txn_date <= $${params.length}`);
@@ -40,6 +51,7 @@ export async function GET(request) {
         LIMIT 500`,
       params
     );
+
     return NextResponse.json(rows.map(shapeTxn));
   } catch (e) {
     return dbErrorResponse(e);
@@ -47,17 +59,34 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
   let body;
+
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body must be valid JSON" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Body must be valid JSON" },
+      { status: 400 }
+    );
   }
 
   const problem = validateTxn(body);
-  if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+
+  if (problem) {
+    return NextResponse.json(
+      { error: problem },
+      { status: 400 }
+    );
+  }
 
   try {
     const { rows } = await pool.query(
@@ -67,6 +96,7 @@ export async function POST(request) {
                  to_char(txn_date, 'YYYY-MM-DD') AS txn_date`,
       [userId, body.category_id, body.amount, body.txn_type, body.txn_date]
     );
+
     return NextResponse.json(shapeTxn(rows[0]), { status: 201 });
   } catch (e) {
     return dbErrorResponse(e);

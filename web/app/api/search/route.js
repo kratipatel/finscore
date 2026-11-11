@@ -1,24 +1,47 @@
+
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { getCurrentUserId } from "@/lib/currentUser";
 import { embedText } from "@/lib/embed";
 
 export async function GET(request) {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
 
   const q = (searchParams.get("q") || "").trim();
+
   if (q.length < 1 || q.length > 200) {
-    return NextResponse.json({ error: "q must be 1 to 200 characters" }, { status: 400 });
+    return NextResponse.json(
+      { error: "q must be 1 to 200 characters" },
+      { status: 400 }
+    );
   }
 
-  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "10", 10) || 10, 1), 20);
+  const limit = Math.min(
+    Math.max(
+      parseInt(searchParams.get("limit") || "10", 10) || 10,
+      1
+    ),
+    20
+  );
 
   let vec;
+
   try {
     vec = await embedText(q);
   } catch {
-    return NextResponse.json({ error: "Search service unavailable" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Search service unavailable" },
+      { status: 503 }
+    );
   }
 
   const { rows } = await pool.query(
