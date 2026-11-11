@@ -14,7 +14,7 @@ cur = conn.cursor()
 EMAIL = "search@finscore.com"
 cur.execute(
     """INSERT INTO users (email, password_hash, role)
-       VALUES (%s, 'fake_hash_search', 'user')
+        VALUES (%s, '$2b$10$KsoqOGvFX.04FZXd00KlE.s4uEVlefIfZLl2EYr1uok5yPJ4yzrD6', 'user')
        ON CONFLICT (email) DO NOTHING""",
     (EMAIL,),
 )
