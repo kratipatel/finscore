@@ -268,6 +268,7 @@ The database seed scripts provide the following sample accounts:
 | `search@finscore.com` | User | Sample notes for semantic-search testing |
 
 Passwords depend on the configured test environment. New users can also register through the application.
+All three demo accounts use the password `Demo@1234` (for local demos only).
 
 ## Security
 

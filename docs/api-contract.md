@@ -2,23 +2,29 @@
 
 Base URL (local): `http://localhost:3000`
 
-All endpoints return JSON. Every endpoint except the auth endpoints acts on behalf of the **logged-in user** and only ever returns or changes that user's own data. Errors always look like `{ "error": "message" }`.
+All endpoints return JSON. Every endpoint except `register` and `login` requires a logged-in session and only ever returns or changes that user's own data. Errors always look like `{ "error": "message" }`.
 
-> **Auth note:** `login`, `register` and `logout` are implemented by Person B (see the Authentication section). Until the session is wired in, `lib/currentUser.js` uses a temporary stub that acts as user 2 (`demo@finscore.com`), or the user in `DEV_USER_ID`.
+**Authentication:** the server sets an HTTP-only cookie named `finscore_session` on login or register. It holds a signed JWT (HS256, 7-day expiry, signed with `SESSION_SECRET`) whose subject is the user id. The browser sends it automatically, so no `Authorization` header is needed. Requests without a valid cookie get `401`.
 
 ## Summary
 
 | Method | Path | Purpose | Who |
 |---|---|---|---|
+| POST | `/api/auth/register` | Create an account and log in | Public |
+| POST | `/api/auth/login` | Log in | Public |
+| POST | `/api/auth/logout` | Log out (clears the cookie) | User |
+| GET | `/api/auth/me` | Current user's id, email and role | User |
 | GET | `/api/categories` | List categories for dropdowns | User |
 | GET | `/api/transactions` | List own transactions (optional date range) | User |
 | POST | `/api/transactions` | Add a transaction | User |
 | PUT | `/api/transactions/{id}` | Edit own transaction | User |
 | DELETE | `/api/transactions/{id}` | Delete own transaction | User |
 | GET | `/api/debts` | List own debts and balances | User |
+| POST | `/api/debts` | Add a debt | User |
 | POST | `/api/debts/pay` | Pay towards a debt | User |
 | GET | `/api/score/current` | Latest financial health score with breakdown | User |
 | GET | `/api/score/trend` | Monthly scores and month-over-month change | User |
+| GET | `/api/notes/index` | List the user's saved notes | User |
 | POST | `/api/notes/index` | Save a transaction note and its embedding | User |
 | GET | `/api/search` | Semantic search over own notes | User |
 | GET | `/api/admin/overview` | Platform totals and latest score per user | Admin |
@@ -28,7 +34,9 @@ All endpoints return JSON. Every endpoint except the auth endpoints acts on beha
 | Status | Meaning |
 |---|---|
 | 400 | Invalid input (the message says which field) |
+| 401 | Not logged in, or the session cookie is invalid or expired |
 | 403 | Admin-only route used by a non-admin |
+| 409 | Email already registered |
 | 404 | Not found, or the record belongs to another user |
 | 503 | Embedding service is not running (notes and search only) |
 | 500 | Unexpected server error |
@@ -117,6 +125,19 @@ Returns `{ "deleted": true }`. Errors: `400` invalid id, `404` not found.
 [ { "debt_id": 1, "name": "Education Loan", "remaining_balance": 195000 } ]
 ```
 
+### POST `/api/debts`
+Adds a debt for the logged-in user.
+```json
+{ "name": "Credit Card", "remaining_balance": 25000 }
+```
+`name` is required (up to 100 characters). `remaining_balance` is a number of 0 or more.
+
+Returns `201`:
+```json
+{ "debt_id": 2, "name": "Credit Card", "remaining_balance": 25000 }
+```
+Errors: `400` for an invalid name or balance.
+
 ### POST `/api/debts/pay`
 Body:
 ```json
@@ -170,6 +191,21 @@ All months in order, with the change from the previous month (`null` for the fir
 ## Notes and semantic search
 
 These need the Python embedding service running on `EMBED_URL` (default `http://localhost:8001`). If it is down, both return `503` `{ "error": "Search service unavailable" }`.
+
+### GET `/api/notes/index`
+Lists the user's saved notes, newest transaction first.
+```json
+[
+  {
+    "txn_id": 12,
+    "note_text": "Starbucks with Riya",
+    "amount": 450,
+    "txn_type": "expense",
+    "txn_date": "2026-10-20",
+    "category_name": "Food"
+  }
+]
+```
 
 ### POST `/api/notes/index`
 Attaches a note to one of the user's own transactions and stores its 384-dimension embedding in PostgreSQL (pgvector). Calling it again for the same `txn_id` replaces the note.
@@ -229,6 +265,45 @@ Errors: `403` `{ "error": "Admins only" }` for non-admin users. Users with no sc
 
 ---
 
-## Authentication (Person B)
+## Authentication
 
-_To be filled in by Person B: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, the session cookie name and the exact request/response bodies._
+### POST `/api/auth/register`
+```json
+{ "email": "new@example.com", "password": "at-least-8-chars" }
+```
+The email is trimmed and lower-cased, and must be valid. The password must be at least 8 characters and is stored as a bcrypt hash (never in plain text). New accounts always get the `user` role. The user is logged in immediately.
+
+Returns `201`:
+```json
+{ "message": "Registration successful", "user": { "user_id": 7, "email": "new@example.com", "role": "user" } }
+```
+Errors: `400` for a missing or invalid email or a short password, `409` if the email is already registered.
+
+### POST `/api/auth/login`
+```json
+{ "email": "demo@finscore.com", "password": "Demo@1234" }
+```
+Returns `200` and sets the `finscore_session` cookie:
+```json
+{ "message": "Login successful", "user": { "user_id": 2, "email": "demo@finscore.com", "role": "user" } }
+```
+Errors: `400` if a field is missing, `401` `{ "error": "Invalid email or password" }` for an unknown email or a wrong password (the same message for both, so attackers cannot tell which emails exist).
+
+### POST `/api/auth/logout`
+Clears the session cookie. Returns `{ "message": "Logout successful" }`.
+
+### GET `/api/auth/me`
+Returns the logged-in user, or `401` if there is no valid session.
+```json
+{ "user": { "user_id": 2, "email": "demo@finscore.com", "role": "user" } }
+```
+
+## Demo accounts (local only)
+
+| Email | Role | Password |
+|---|---|---|
+| `admin@finscore.com` | admin | `Demo@1234` |
+| `demo@finscore.com` | user | `Demo@1234` |
+| `search@finscore.com` | user | `Demo@1234` (has sample notes for search testing) |
+
+These passwords are for local demos only.
