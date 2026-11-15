@@ -267,10 +267,10 @@ export default function Home() {
                     <span className="font-medium">Savings</span>
 
                     <strong className="text-emerald-600">
-                      {formatMoney(
-                        scoreData.income - scoreData.expenses
-                      )}
-                    </strong>
+                     {formatMoney(
+                           Number(scoreData.income) - Number(scoreData.expenses) - Number(scoreData.debt_payments)
+                                            )}
+                     </strong> 
                   </div>
 
                   <p className="text-xs text-slate-400">
